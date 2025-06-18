@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  mysql: 
+    image: mysql:latest
+    container_name: my-sql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: mydb
+      MYSQL_USER: myuser
+      MYSQL_PASSWORD: mysecurepassword
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+  flask-app:
+    build:
+      context: .  # Building from the current root directory
+      dockerfile: Dockerfile  # Explicitly use the Dockerfile in root
+    container_name: my-flask-app
+    ports:
+      - "5001:5001"  # Matches app.run port and Dockerfile EXPOSE
+    environment:
+      FLASK_ENV: development
+      DATABASE_URL: mysql+pymysql://myuser:mysecurepassword@mysql/mydb
+    volumes:
+      - .:/app  # Maps project root to /app inside container
+    depends_on:
+      - mysql
+
+  frontend:
+    build:
+      context: ./titan-alchemy-forgefront
+      dockerfile: Dockerfile
+    container_name: frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - flask-app
+
+volumes:
+  mysql_data: 

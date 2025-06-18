@@ -1,0 +1,12 @@
+version: '3.9'
+
+services:
+  flask-app:
+    build: .                 # Build the image from the Dockerfile in the current directory
+    container_name: flask-app
+    ports:
+      - "5001:5001"          # Map port 5000 on the host to port 5000 in the container
+    environment:
+      - FLASK_ENV=development  # Optional: Set Flask environment for debugging
+    volumes:
+      - .:/app               # Mount the project directory into the container for live updates
