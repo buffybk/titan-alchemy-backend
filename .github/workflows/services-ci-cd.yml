@@ -1,0 +1,90 @@
+name: Services CI/CD
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'docker-compose.yml'
+      - 'docker-compose.debug.yml'
+      - 'wait-for-it.sh'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'docker-compose.yml'
+      - 'docker-compose.debug.yml'
+      - 'wait-for-it.sh'
+
+jobs:
+  test-integration:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v1
+    
+    - name: Start services
+      run: |
+        docker-compose up -d mysql
+        ./wait-for-it.sh localhost:3306 -t 60
+    
+    - name: Run integration tests
+      run: |
+        docker-compose run --rm backend pytest tests/integration/
+    
+    - name: Cleanup
+      run: docker-compose down -v
+
+  build-and-push:
+    needs: test-integration
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    
+    steps:
+    - uses: actions/checkout@v2
+    
+    - name: Login to Azure Container Registry
+      uses: azure/docker-login@v1
+      with:
+        login-server: ${{ secrets.ACR_LOGIN_SERVER }}
+        username: ${{ secrets.ACR_USERNAME }}
+        password: ${{ secrets.ACR_PASSWORD }}
+    
+    - name: Build and push MySQL image
+      run: |
+        docker build -f services/mysql/Dockerfile -t ${{ secrets.ACR_LOGIN_SERVER }}/titan-alchemy-mysql:${{ github.sha }} .
+        docker push ${{ secrets.ACR_LOGIN_SERVER }}/titan-alchemy-mysql:${{ github.sha }}
+        docker tag ${{ secrets.ACR_LOGIN_SERVER }}/titan-alchemy-mysql:${{ github.sha }} ${{ secrets.ACR_LOGIN_SERVER }}/titan-alchemy-mysql:latest
+        docker push ${{ secrets.ACR_LOGIN_SERVER }}/titan-alchemy-mysql:latest
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    
+    steps:
+    - uses: actions/checkout@v2
+    
+    - name: Azure Login
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+    
+    - name: Deploy services to Azure Container Apps
+      run: |
+        # Deploy MySQL
+        az containerapp create \
+          --name titan-alchemy-mysql \
+          --resource-group VdVB-Prod-RG \
+          --image ${{ secrets.ACR_LOGIN_SERVER }}/titan-alchemy-mysql:${{ github.sha }} \
+          --environment titan-alchemy-env \
+          --registry-server ${{ secrets.ACR_LOGIN_SERVER }} \
+          --registry-username ${{ secrets.ACR_USERNAME }} \
+          --registry-password ${{ secrets.ACR_PASSWORD }} \
+          --target-port 3306 \
+          --ingress internal \
+          --min-replicas 1 \
+          --max-replicas 1 \
+          --env-vars \
+            MYSQL_ROOT_PASSWORD=${{ secrets.MYSQL_ROOT_PASSWORD }} \
+            MYSQL_DATABASE=titan_alchemy 

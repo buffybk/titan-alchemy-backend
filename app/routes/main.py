@@ -11,7 +11,7 @@ def list_users():
     # Fetch all users and return JSON
     users = User.query.all()
     return jsonify([
-        {"id": user.id, "username": user.username, "email": user.email}
+        {"id": user.id, "firstName": user.firstName, "lastName": user.lastName, "email": user.email}
         for user in users
     ])
 

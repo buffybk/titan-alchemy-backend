@@ -14,7 +14,7 @@ migrate = Migrate()
 
 def create_app():
     app = Flask(__name__)
-    CORS(app)
+    CORS(app, origins=["https://titanalchemy-frontend-e0hza7fwhgh7ddcd.westeurope-01.azurewebsites.net"])
     app.config.from_object(config)
     # Override DB URI if set in environment
     db_uri = os.environ.get('SQLALCHEMY_DATABASE_URI')

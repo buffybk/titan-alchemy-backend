@@ -25,6 +25,7 @@ def login():
         return jsonify({'success': False, 'message': 'Invalid request'}), 400
 
 @auth.route('/register', methods=['POST'])
+@auth.route('/register/', methods=['POST'])
 def register():
     if request.method == 'POST':
         if request.is_json:
@@ -49,7 +50,7 @@ def register():
             
             try:
                 db.session.add(user)
-                db.session.commit()
+        db.session.commit()
                 return jsonify({
                     'success': True,
                     'message': 'Registration successful! Please log in.'
