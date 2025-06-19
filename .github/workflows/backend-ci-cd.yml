@@ -42,9 +42,21 @@ jobs:
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v1
     
+    - name: Show repository contents
+      run: |
+        echo "=== REPOSITORY CONTENTS ==="
+        ls -la
+        echo "=== APP FOLDER ==="
+        ls -la app/
+        echo "=== TESTS FOLDER ==="
+        ls -la tests/
+        echo "=== CONFTEST.PY CONTENT ==="
+        cat tests/conftest.py
+    
     - name: Build and run tests
       run: |
-        docker build --target test --build-arg CACHEBUST=${{ github.run_number }} --build-arg TIMESTAMP=${{ github.run_id }} -t backend-test .
+        docker system prune -f
+        docker build --target test --build-arg CACHEBUST=${{ github.run_number }} --build-arg TIMESTAMP=${{ github.run_id }} --no-cache -t backend-test .
         docker run --name backend-test \
           -e DATABASE_URL=mysql://root:root@mysql:3306/titan_alchemy \
           --network ${{ job.services.mysql.network }} \
