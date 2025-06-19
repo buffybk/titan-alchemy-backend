@@ -111,5 +111,5 @@ jobs:
     - name: Deploy to Azure Web App
       uses: azure/webapps-deploy@v2
       with:
-        app-name: 'titanalchemy-backend'
+        app-name: 'titanalchemy1-flask-app'
         slot-name: 'production' 
