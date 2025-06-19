@@ -5,6 +5,8 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 FROM base AS test
+# Add build argument to force fresh builds
+ARG CACHEBUST=1
 # Copy test files first to avoid caching issues
 COPY tests/ ./tests/
 COPY app/ ./app/
