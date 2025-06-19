@@ -1,6 +1,11 @@
 import pytest
-from app import create_app, db
+import sys
 import os
+
+# Add the parent directory to Python path
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from app import create_app
 
 @pytest.fixture(scope='session')
 def app():
@@ -15,6 +20,7 @@ def app():
 
     # Create the database and context
     with app.app_context():
+        from app import db
         db.create_all()
         yield app
         db.session.remove()
@@ -32,11 +38,13 @@ def runner(app):
 def init_database(app):
     # Create the database and the database tables
     with app.app_context():
+        from app import db
         db.create_all()
     
     yield db  # this is where the testing happens
     
     # Tear down the database
     with app.app_context():
+        from app import db
         db.session.remove()
         db.drop_all() 

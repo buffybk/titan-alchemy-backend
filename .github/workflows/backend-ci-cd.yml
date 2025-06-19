@@ -1,75 +1,77 @@
-name: Backend CI/CD
-
+name: Backend CI/CD Pipeline
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, develop ]
     paths:
       - 'app/**'
-      - 'requirements.txt'
-      - 'run.py'
-      - 'config.py'
       - 'tests/**'
+      - 'requirements.txt'
       - 'Dockerfile'
-      - 'docker-compose.yml'
+      - '.github/workflows/backend-ci-cd.yml'
   pull_request:
-    branches: [ main ]
+    branches: [ main, develop ]
     paths:
       - 'app/**'
-      - 'requirements.txt'
-      - 'run.py'
-      - 'config.py'
       - 'tests/**'
+      - 'requirements.txt'
       - 'Dockerfile'
-      - 'docker-compose.yml'
+      - '.github/workflows/backend-ci-cd.yml'
 
 jobs:
   test:
     runs-on: ubuntu-latest
+    
     services:
       mysql:
         image: mysql:8.0
         env:
           MYSQL_ROOT_PASSWORD: root
-          MYSQL_DATABASE: titan_alchemy
+          MYSQL_DATABASE: test_db
         ports:
           - 3306:3306
         options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v1
-    
-    - name: Show repository contents
+    - name: Debug - List repository contents
       run: |
         echo "=== REPOSITORY CONTENTS ==="
-        ls -la
-        echo "=== APP FOLDER ==="
-        ls -la app/
-        echo "=== TESTS FOLDER ==="
-        ls -la tests/
+        find . -type f -name "*.py" | head -20
         echo "=== CONFTEST.PY CONTENT ==="
         cat tests/conftest.py
+        echo "=== TEST_ROUTES.PY CONTENT ==="
+        cat tests/test_routes.py
+        echo "=== APP/__INIT__.PY CONTENT ==="
+        cat app/__init__.py
     
-    - name: Build and run tests
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+    
+    - name: Force Docker system prune
       run: |
-        docker system prune -f
-        docker build --target test --build-arg CACHEBUST=${{ github.run_number }} --build-arg TIMESTAMP=${{ github.run_id }} --no-cache -t backend-test .
-        docker run --name backend-test \
-          -e DATABASE_URL=mysql://root:root@mysql:3306/titan_alchemy \
-          --network ${{ job.services.mysql.network }} \
-          backend-test
+        docker system prune -af
+        docker builder prune -af
     
-    - name: Copy coverage from container
+    - name: Build and test with Docker
       run: |
-        docker cp backend-test:/app/coverage.xml .
-    
-    - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v3
-      with:
-        file: ./coverage.xml
+        echo "=== BUILDING DOCKER IMAGE ==="
+        docker build --no-cache --build-arg CACHEBUST=$(date +%s) -t titan-alchemy-backend .
+        
+        echo "=== RUNNING TESTS IN CONTAINER ==="
+        docker run --rm titan-alchemy-backend bash -c "
+          echo '=== CONTAINER FILE STRUCTURE ==='
+          find . -name '*.py' | head -20
+          echo '=== CONFTEST.PY IN CONTAINER ==='
+          cat tests/conftest.py
+          echo '=== TEST_ROUTES.PY IN CONTAINER ==='
+          cat tests/test_routes.py
+          echo '=== APP/__INIT__.PY IN CONTAINER ==='
+          cat app/__init__.py
+          echo '=== RUNNING TESTS ==='
+          python -m pytest tests/ -v
+        "
 
   build-and-push:
     needs: test
