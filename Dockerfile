@@ -25,4 +25,6 @@ CMD ["pytest", "--cov=app", "--cov-report=xml"]
 FROM base AS production
 COPY . .
 ENV FLASK_ENV=production
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "run:app"]
+ENV PORT=8000
+EXPOSE 8000
+CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--timeout", "600", "--workers", "4", "run:app"]
