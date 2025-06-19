@@ -8,12 +8,8 @@ FROM base AS test
 # Add build argument to force fresh builds
 ARG CACHEBUST=1
 ARG TIMESTAMP=1
-# Copy test files first to avoid caching issues
-COPY tests/ ./tests/
-COPY app/ ./app/
-COPY pytest.ini .
-COPY config.py .
-COPY run.py .
+# Copy files to correct locations to avoid double app folder
+COPY . .
 # Force rebuild by touching files and clear Python cache
 RUN find . -name "*.py" -exec touch {} \; && \
     find . -name "*.pyc" -delete 2>/dev/null || true && \
