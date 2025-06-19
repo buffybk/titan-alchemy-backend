@@ -16,38 +16,38 @@ def client(app):
 def runner(app):
     return app.test_cli_runner()
 
-def test_home_page(client):
-    response = client.get('/')
+def test_health_check(client):
+    response = client.get('/health')
     assert response.status_code == 200
-
-def test_catalog_api(client):
-    response = client.get('/api/catalog')
-    assert response.status_code == 200
-    assert response.content_type == 'application/json'
-    data = response.get_json()
-    assert isinstance(data, list)
+    assert response.get_json() == {"status": "healthy"}
 
 def test_register_user(client):
-    response = client.post('/api/register', json={
-        'username': 'testuser',
+    response = client.post('/register', json={
         'email': 'test@example.com',
-        'password': 'testpass123'
+        'password': 'testpass123',
+        'firstName': 'Test',
+        'lastName': 'User'
     })
     assert response.status_code == 200
-    assert User.query.filter_by(username='testuser').first() is not None
+    assert response.get_json().get('success') is True
+    user = User.query.filter_by(email='test@example.com').first()
+    assert user is not None
+    assert user.firstName == 'Test'
+    assert user.lastName == 'User'
 
 def test_login_user(client):
     # First register a user
-    client.post('/api/register', json={
-        'username': 'logintest',
+    client.post('/register', json={
         'email': 'login@example.com',
-        'password': 'testpass123'
+        'password': 'testpass123',
+        'firstName': 'Login',
+        'lastName': 'Test'
     })
     
     # Then try to login
-    response = client.post('/api/login', json={
+    response = client.post('/login', json={
         'email': 'login@example.com',
         'password': 'testpass123'
     })
     assert response.status_code == 200
-    assert response.get_json().get('message') == 'Logged in successfully' 
+    assert response.get_json().get('success') is True 

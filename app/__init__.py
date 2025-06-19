@@ -21,6 +21,7 @@ def create_app(config_name=None):
         app.config['TESTING'] = True
         app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'
         app.config['WTF_CSRF_ENABLED'] = False
+        app.config['SECRET_KEY'] = 'test-secret-key'  # Add secret key for testing
     else:
         app.config.from_object(config)
         # Override DB URI if set in environment
