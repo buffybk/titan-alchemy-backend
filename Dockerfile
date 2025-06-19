@@ -5,7 +5,12 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 FROM base AS test
-COPY . .
+# Copy test files first to avoid caching issues
+COPY tests/ ./tests/
+COPY app/ ./app/
+COPY pytest.ini .
+COPY config.py .
+COPY run.py .
 ENV FLASK_ENV=testing
 ENV PYTHONPATH=/app
 CMD ["pytest", "--cov=app", "--cov-report=xml"]
