@@ -12,14 +12,21 @@ login_manager = LoginManager()
 login_manager.login_view = 'auth.login'
 migrate = Migrate()
 
-def create_app():
+def create_app(config_name=None):
     app = Flask(__name__)
     CORS(app, origins=["https://titanalchemy-frontend-e0hza7fwhgh7ddcd.westeurope-01.azurewebsites.net"])
-    app.config.from_object(config)
-    # Override DB URI if set in environment
-    db_uri = os.environ.get('SQLALCHEMY_DATABASE_URI')
-    if db_uri:
-        app.config['SQLALCHEMY_DATABASE_URI'] = db_uri
+    
+    # Use testing config if specified, otherwise use default config
+    if config_name == 'testing':
+        app.config['TESTING'] = True
+        app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'
+        app.config['WTF_CSRF_ENABLED'] = False
+    else:
+        app.config.from_object(config)
+        # Override DB URI if set in environment
+        db_uri = os.environ.get('SQLALCHEMY_DATABASE_URI')
+        if db_uri:
+            app.config['SQLALCHEMY_DATABASE_URI'] = db_uri
 
     # Initialize extensions
     db.init_app(app)
@@ -49,6 +56,10 @@ def create_app():
         from app.models.cart import Cart
         from app.models.payment import Payment
         from app.models.address import Address
+        
+        # Create tables for testing
+        if config_name == 'testing':
+            db.create_all()
 
     @app.route('/health')
     def health_check():

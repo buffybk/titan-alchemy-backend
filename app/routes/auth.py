@@ -30,7 +30,6 @@ def register():
     if request.method == 'POST':
         if request.is_json:
             data = request.get_json()
-            # username = data.get('username')  # Removed
             email = data.get('email')
             password = data.get('password')
             firstName = data.get('firstName')
@@ -50,7 +49,7 @@ def register():
             
             try:
                 db.session.add(user)
-        db.session.commit()
+                db.session.commit()
                 return jsonify({
                     'success': True,
                     'message': 'Registration successful! Please log in.'
