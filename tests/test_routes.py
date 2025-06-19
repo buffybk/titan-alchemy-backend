@@ -1,6 +1,6 @@
 import pytest
-from app import create_app
-from app.models import db, User, Product
+from app import create_app, db
+from app.models import User, Product
 from flask_login import current_user
 
 @pytest.fixture
